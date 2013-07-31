@@ -6,3 +6,8 @@ version          "0.1.0"
 %w{redhat centos fedora debian ubuntu}.each do |os|
   supports os
 end
+
+# we want to search our local data_bags for solo
+if defined? Chef && Chef::Config[:solo]
+  depends "solo-search"
+end

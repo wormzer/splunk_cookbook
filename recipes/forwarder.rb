@@ -75,18 +75,15 @@ service "splunk" do
   supports :status => true, :start => true, :stop => true, :restart => true
 end
 
-if Chef::Config[:solo]
-  Chef::Log.warn("This recipe uses search. Chef Solo does not support Search")
+# chef-solo will require solo-search so this will work with chef solo's version of data bag search
+role_name = ""
+if node['splunk']['distributed_search'] == true
+	role_name = node['splunk']['indexer_role']
 else
-  role_name = ""
-  if node['splunk']['distributed_search'] == true
-    role_name = node['splunk']['indexer_role']
-  else
-    role_name = node['splunk']['server_role']
-  end
-
-  splunk_servers = search(:node, "role:#{role_name}")
+	role_name = node['splunk']['server_role']
 end
+
+splunk_servers = search(:node, "role:#{role_name}")
 
 if node['splunk']['ssl_forwarding'] == true
   directory "#{node['splunk']['forwarder_home']}/etc/auth/forwarders" do
