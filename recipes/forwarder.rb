@@ -117,6 +117,7 @@ if node['splunk']['ssl_forwarding'] == true
 end
 
 template "#{node['splunk']['forwarder_home']}/etc/system/local/outputs.conf" do
+	cookbook node['splunk']['cookbook_name']
 	source "forwarder/outputs.conf.erb"
 	owner "root"
 	group "root"
@@ -125,8 +126,9 @@ template "#{node['splunk']['forwarder_home']}/etc/system/local/outputs.conf" do
 	notifies :restart, resources(:service => "splunk")
 end
 
-["limits"].each do |cfg|
+["limits", "props"].each do |cfg|
   template "#{node['splunk']['forwarder_home']}/etc/system/local/#{cfg}.conf" do
+	cookbook node['splunk']['cookbook_name']
    	source "forwarder/#{cfg}.conf.erb"
    	owner "root"
    	group "root"
@@ -137,6 +139,7 @@ end
 
 template "Moving inputs file for role: #{node['splunk']['forwarder_role']}" do
   path "#{node['splunk']['forwarder_home']}/etc/system/local/inputs.conf"
+	cookbook node['splunk']['cookbook_name']
   source "forwarder/#{node['splunk']['forwarder_config_folder']}/#{node['splunk']['forwarder_role']}.inputs.conf.erb"
   owner "root"
   group "root"
@@ -146,6 +149,7 @@ end
 
 
 template "/etc/init.d/splunk" do
+	cookbook node['splunk']['cookbook_name']
   source "forwarder/splunk.erb"
   mode "0755"
   owner "root"
