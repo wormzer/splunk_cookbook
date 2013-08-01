@@ -78,9 +78,9 @@ end
 # chef-solo will require solo-search so this will work with chef solo's version of data bag search
 role_name = ""
 if node['splunk']['distributed_search'] == true
-	role_name = node['splunk']['indexer_role']
+  role_name = node['splunk']['indexer_role']
 else
-	role_name = node['splunk']['server_role']
+  role_name = node['splunk']['server_role']
 end
 
 splunk_servers = search(:node, "role:#{role_name}")
@@ -94,6 +94,7 @@ if node['splunk']['ssl_forwarding'] == true
   
   [node['splunk']['ssl_forwarding_cacert'],node['splunk']['ssl_forwarding_servercert']].each do |cert|
     cookbook_file "#{node['splunk']['forwarder_home']}/etc/auth/forwarders/#{cert}" do
+      cookbook node['splunk']['cookbook_name']
       source "ssl/forwarders/#{cert}"
       owner "root"
       group "root"
@@ -105,51 +106,56 @@ if node['splunk']['ssl_forwarding'] == true
   # SSL passwords are encrypted when splunk reads the file.  We need to save the password.
   # We need to save the password if it has changed so we don't keep restarting splunk.
   # Splunk encrypted passwords always start with $1$
+  # NOTE: cannot save with chef solo
   ruby_block "Saving Encrypted Password (outputs.conf)" do
     block do
       outputsPass = `grep -m 1 "sslPassword = " #{node['splunk']['forwarder_home']}/etc/system/local/outputs.conf | sed 's/sslPassword = //'`
       if outputsPass.match(/^\$1\$/) && outputsPass != node['splunk']['outputsSSLPass']
-        node['splunk']['outputsSSLPass'] = outputsPass
-        node.save
+        unless defined? Chef::Config[:solo]
+					node['splunk']['outputsSSLPass'] = outputsPass
+					node.save
+				end
       end
     end
   end
 end
 
 template "#{node['splunk']['forwarder_home']}/etc/system/local/outputs.conf" do
-	cookbook node['splunk']['cookbook_name']
-	source "forwarder/outputs.conf.erb"
-	owner "root"
-	group "root"
-	mode "0644"
-	variables :splunk_servers => splunk_servers
-	notifies :restart, resources(:service => "splunk")
+  cookbook node['splunk']['cookbook_name']
+  source "forwarder/outputs.conf.erb"
+  owner "root"
+  group "root"
+  mode "0644"
+  variables :splunk_servers => splunk_servers
+  notifies :restart, resources(:service => "splunk")
 end
 
-["limits", "props"].each do |cfg|
+["limits"].each do |cfg|
   template "#{node['splunk']['forwarder_home']}/etc/system/local/#{cfg}.conf" do
-	cookbook node['splunk']['cookbook_name']
-   	source "forwarder/#{cfg}.conf.erb"
-   	owner "root"
-   	group "root"
-   	mode "0640"
+    cookbook node['splunk']['cookbook_name']
+    source "forwarder/#{cfg}.conf.erb"
+    owner "root"
+    group "root"
+    mode "0640"
     notifies :restart, resources(:service => "splunk")
    end
 end
 
-template "Moving inputs file for role: #{node['splunk']['forwarder_role']}" do
-  path "#{node['splunk']['forwarder_home']}/etc/system/local/inputs.conf"
-	cookbook node['splunk']['cookbook_name']
-  source "forwarder/#{node['splunk']['forwarder_config_folder']}/#{node['splunk']['forwarder_role']}.inputs.conf.erb"
-  owner "root"
-  group "root"
-  mode "0640"
-  notifies :restart, resources(:service => "splunk")
+["inputs", "props"].each do |cfg|
+  template "Moving #{cfg} file for role: #{node['splunk']['forwarder_role']}" do
+    path "#{node['splunk']['forwarder_home']}/etc/system/local/#{cfg}.conf"
+    cookbook node['splunk']['cookbook_name']
+    source "forwarder/#{node['splunk']['forwarder_config_folder']}/#{node['splunk']['forwarder_role']}.#{cfg}.conf.erb"
+    owner "root"
+    group "root"
+    mode "0640"
+    notifies :restart, resources(:service => "splunk")
+  end
 end
 
 
 template "/etc/init.d/splunk" do
-	cookbook node['splunk']['cookbook_name']
+  cookbook node['splunk']['cookbook_name']
   source "forwarder/splunk.erb"
   mode "0755"
   owner "root"
