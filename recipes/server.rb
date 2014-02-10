@@ -328,6 +328,8 @@ if node['splunk']['distributed_search'] == true
   end
 end # End of distributed search
 
-service "splunk" do
-  action :start
+if node['splunk']['allow_restart']
+	service "splunk" do
+		action :start
+	end
 end

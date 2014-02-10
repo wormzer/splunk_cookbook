@@ -162,6 +162,8 @@ template "/etc/init.d/splunk" do
   group "root"
 end
 
-service "splunk" do
-   action :start
+if node['splunk']['allow_restart']
+	service "splunk" do
+	 action :start
+	end
 end
