@@ -10,5 +10,5 @@ end
 
 # we want to search our local data_bags for solo
 if defined? Chef && Chef::Config[:solo]
-  depends "solo-search"
+  depends "chef-solo-search"
 end
