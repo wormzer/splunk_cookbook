@@ -17,6 +17,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+include_recipe 'oz-ec2'
+
 directory "/opt" do
   mode "0755"
   owner "root"
