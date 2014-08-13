@@ -12,3 +12,5 @@ end
 if defined? Chef && Chef::Config[:solo]
   depends "chef-solo-search"
 end
+
+depends 'oz-ec2'
