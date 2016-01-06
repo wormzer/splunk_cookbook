@@ -14,3 +14,4 @@ if defined? Chef && Chef::Config[:solo]
 end
 
 depends 'oz-ec2'
+depends 's3_file'

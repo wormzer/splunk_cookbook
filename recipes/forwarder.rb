@@ -95,14 +95,29 @@ if node['splunk']['ssl_forwarding'] == true
   end
   
   [node['splunk']['ssl_forwarding_cacert'],node['splunk']['ssl_forwarding_servercert']].each do |cert|
-    cookbook_file "#{node['splunk']['forwarder_home']}/etc/auth/forwarders/#{cert}" do
-      cookbook node['splunk']['cookbook_name']
-      source "ssl/forwarders/#{cert}"
-      owner "root"
-      group "root"
-      mode "0755"
-      notifies :restart, resources(:service => "splunk") if node['splunk']['allow_restart']
-    end
+		if cert.start_with? 's3://'
+			cert_basename = cert.split('/').last
+			cert_s3_bucket = cert.split('/')[2]
+			cert_s3_path = '/' + cert.split('/')[3..-1].join('/')
+			Chef::Log.info("Installing #{cert_basename} cert file from #{cert_s3_bucket} #{cert_s3_path}")
+			s3_file "#{node['splunk']['forwarder_home']}/etc/auth/forwarders/#{cert_basename}" do
+				bucket cert_s3_bucket
+				remote_path cert_s3_path
+				owner "root"
+				group "root"
+				mode "0755"
+				notifies :restart, resources(:service => "splunk") if node['splunk']['allow_restart']
+			end
+		else
+			cookbook_file "#{node['splunk']['forwarder_home']}/etc/auth/forwarders/#{cert}" do
+				cookbook node['splunk']['cookbook_name']
+				source "ssl/forwarders/#{cert}"
+				owner "root"
+				group "root"
+				mode "0755"
+				notifies :restart, resources(:service => "splunk") if node['splunk']['allow_restart']
+			end
+		end
   end
 
   # SSL passwords are encrypted when splunk reads the file.  We need to save the password.
