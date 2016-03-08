@@ -44,9 +44,9 @@ splunk_file = splunk_package_version +
     end
   end
 
-remote_file "#{Chef::Config['file_cache_path']}/#{splunk_file}" do
-  source "#{node['splunk']['forwarder_root']}/#{node['splunk']['forwarder_version']}/universalforwarder/linux/#{splunk_file}"
-  action :create_if_missing
+s3_file "#{Chef::Config['file_cache_path']}/#{splunk_file}" do
+  remote_path splunk_file
+  bucket "oz-team-files"
 end
 
 package splunk_package_version do
