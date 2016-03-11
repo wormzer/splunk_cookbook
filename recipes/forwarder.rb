@@ -23,6 +23,7 @@ directory "/opt" do
   mode "0755"
   owner "root"
   group "root"
+  ignore_failure true
 end
 
 splunk_cmd = "#{node['splunk']['forwarder_home']}/bin/splunk"
@@ -47,6 +48,7 @@ splunk_file = splunk_package_version +
 s3_file "#{Chef::Config['file_cache_path']}/#{splunk_file}" do
   remote_path splunk_file
   bucket "oz-team-files"
+  ignore_failure true
 end
 
 package splunk_package_version do
@@ -57,12 +59,14 @@ package splunk_package_version do
   when "debian","ubuntu"
     provider Chef::Provider::Package::Dpkg
   end
+  ignore_failure true
 end
 
 execute "#{splunk_cmd} enable boot-start --accept-license --answer-yes && echo true > /opt/splunk_license_accepted_#{node['splunk']['forwarder_version']}" do
   not_if do
     File.exists?("/opt/splunk_license_accepted_#{node['splunk']['forwarder_version']}")
   end
+  ignore_failure true
 end
 
 splunk_password = node['splunk']['auth'].split(':')[1]
@@ -70,11 +74,13 @@ execute "#{splunk_cmd} edit user admin -password #{splunk_password} -roles admin
   not_if do
     File.exists?("/opt/splunk_setup_passwd")
   end
+  ignore_failure true
 end
 
 service "splunk" do
   action [ :nothing ]
   supports :status => true, :start => true, :stop => true, :restart => true
+  ignore_failure true
 end
 
 # chef-solo will require solo-search so this will work with chef solo's version of data bag search
@@ -92,6 +98,7 @@ if node['splunk']['ssl_forwarding'] == true
     owner "root"
     group "root"
     action :create
+    ignore_failure true
   end
   
   [node['splunk']['ssl_forwarding_cacert'],node['splunk']['ssl_forwarding_servercert']].each do |cert|
@@ -107,6 +114,7 @@ if node['splunk']['ssl_forwarding'] == true
 				group "root"
 				mode "0755"
 				notifies :restart, resources(:service => "splunk") if node['splunk']['allow_restart']
+        ignore_failure true
 			end
 		else
 			cookbook_file "#{node['splunk']['forwarder_home']}/etc/auth/forwarders/#{cert}" do
@@ -116,6 +124,7 @@ if node['splunk']['ssl_forwarding'] == true
 				group "root"
 				mode "0755"
 				notifies :restart, resources(:service => "splunk") if node['splunk']['allow_restart']
+        ignore_failure true
 			end
 		end
   end
@@ -134,6 +143,7 @@ if node['splunk']['ssl_forwarding'] == true
 				end
       end
     end
+    ignore_failure true
   end
 end
 
@@ -145,6 +155,7 @@ template "#{node['splunk']['forwarder_home']}/etc/system/local/outputs.conf" do
   mode "0644"
   variables :splunk_servers => splunk_servers
   notifies :restart, resources(:service => "splunk") if node['splunk']['allow_restart']
+  ignore_failure true
 end
 
 ["limits"].each do |cfg|
@@ -155,6 +166,7 @@ end
     group "root"
     mode "0640"
     notifies :restart, resources(:service => "splunk") if node['splunk']['allow_restart']
+    ignore_failure true
    end
 end
 
@@ -167,6 +179,7 @@ end
     group "root"
     mode "0640"
     notifies :restart, resources(:service => "splunk") if node['splunk']['allow_restart']
+    ignore_failure true
   end
 end
 
@@ -177,10 +190,13 @@ template "/etc/init.d/splunk" do
   mode "0755"
   owner "root"
   group "root"
+  ignore_failure true
+
 end
 
 if node['splunk']['allow_restart']
 	service "splunk" do
-	 action :start
+    action :start
+    ignore_failure true
 	end
 end
